@@ -15,6 +15,7 @@
 *.iws
 .idea/
 
+vendor/
 log/
 
 config-local.conf
