@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+type LogstashConf struct {
+	LogFormatter logrus.Formatter
+	Address      string
+}
+
 // Hook represents a Logstash hook.
 // It has two fields: writer to write the entry to Logstash and
 // formatter to format the entry to a Logstash format before sending.
