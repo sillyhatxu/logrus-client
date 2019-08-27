@@ -3,7 +3,7 @@ package fieldhook
 import "github.com/sirupsen/logrus"
 
 type DefaultFieldHook struct {
-	Field map[string]string
+	Fields logrus.Fields
 }
 
 func (h *DefaultFieldHook) Levels() []logrus.Level {
@@ -11,8 +11,6 @@ func (h *DefaultFieldHook) Levels() []logrus.Level {
 }
 
 func (h *DefaultFieldHook) Fire(e *logrus.Entry) error {
-	for k, v := range h.Field {
-		e.Data[k] = v
-	}
+	e.Data = h.Fields
 	return nil
 }

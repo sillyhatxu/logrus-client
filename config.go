@@ -5,7 +5,6 @@ import (
 	"github.com/sillyhatxu/logrus-client/fieldhook"
 	"github.com/sillyhatxu/logrus-client/filehook"
 	"github.com/sillyhatxu/logrus-client/logstashhook"
-	"github.com/sillyhatxu/logrus-client/tcpclient"
 	"github.com/sirupsen/logrus"
 	"os"
 )
@@ -13,7 +12,7 @@ import (
 type Conf struct {
 	Level        logrus.Level
 	ReportCaller bool
-	Field        map[string]string
+	Fields       logrus.Fields
 	LogFormatter logrus.Formatter
 	FileConf     *filehook.FileConf
 	LogstashConf *logstashhook.LogstashConf
@@ -55,8 +54,8 @@ func (conf Conf) Initial() {
 	logrus.SetLevel(conf.Level)
 	logrus.SetReportCaller(conf.ReportCaller)
 	logrus.SetFormatter(conf.LogFormatter)
-	if len(conf.Field) > 0 {
-		logrus.AddHook(&fieldhook.DefaultFieldHook{Field: conf.Field})
+	if len(conf.Fields) > 0 {
+		logrus.AddHook(&fieldhook.DefaultFieldHook{Fields: conf.Fields})
 	}
 	if conf.FileConf != nil {
 		infoHook, err := conf.FileConf.CreateFileHook("info", []logrus.Level{logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel})
@@ -71,11 +70,7 @@ func (conf Conf) Initial() {
 		logrus.AddHook(errorHook)
 	}
 	if conf.LogstashConf != nil {
-		conn, err := tcpclient.Dial("tcp", conf.LogstashConf.Address)
-		if err != nil {
-			panic(fmt.Sprintf("net.Dial(tcp, %s); Error : %v", conf.LogstashConf.Address, err))
-		}
-		hook := logstashhook.New(conn, conf.LogstashConf.LogFormatter)
+		hook := conf.LogstashConf.New(conf.Fields)
 		logrus.AddHook(hook)
 	}
 }

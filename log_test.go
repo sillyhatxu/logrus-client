@@ -19,7 +19,7 @@ func TestDefaultLog(t *testing.T) {
 	conf := &Conf{
 		Level:        logrus.InfoLevel,
 		ReportCaller: true,
-		Field: map[string]string{
+		Fields: logrus.Fields{
 			"project": "test",
 			"module":  "test-module",
 		},
@@ -43,7 +43,7 @@ func TestFileLog(t *testing.T) {
 	conf := &Conf{
 		Level:        logrus.InfoLevel,
 		ReportCaller: true,
-		Field: map[string]string{
+		Fields: logrus.Fields{
 			"project": "test",
 			"module":  "test-module",
 		},
@@ -82,14 +82,15 @@ func TestLogstashLog(t *testing.T) {
 	conf := &Conf{
 		Level:        logrus.InfoLevel,
 		ReportCaller: true,
-		Field: map[string]string{
+		Fields: logrus.Fields{
 			"project": "test",
 			"module":  "test-module",
 		},
 		LogFormatter: jsonFormatter,
 		LogstashConf: &logstashhook.LogstashConf{
 			LogFormatter: jsonFormatter,
-			Address:      "localhost:51401",
+			Address:      "localhost:5000",
+			ExtraFields:  logrus.Fields{"@version": "1", "type": "project-log"},
 		},
 	}
 	conf.Initial()
@@ -110,7 +111,7 @@ func TestInputLogstash(t *testing.T) {
 	conf := &Conf{
 		Level:        logrus.InfoLevel,
 		ReportCaller: true,
-		Field: map[string]string{
+		Fields: logrus.Fields{
 			"project": "test",
 			"module":  "test-module",
 		},
