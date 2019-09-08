@@ -4,23 +4,37 @@
 ## Initialize your project
 
 ```
-dep init
-```
-
-## Adding a dependency
-
-```
-dep ensure -add github.com/foo/bar github.com/foo/baz...
-
-dep ensure -add github.com/foo/bar@1.0.0 github.com/foo/baz@master
+go mod init logrus-client
 ```
 
 ## Updating dependencies
 
 ```
-dep ensure -update github.com/sillyhatxu/convenient-utils
+go mod vendor
+```
 
-dep ensure -update
+## verify dependencies
+
+```
+go mod verify
+```
+
+## remove dependencies that is not used
+
+```
+go mod tidy
+```
+
+## print dependence diagram
+
+```
+go mod graph
+```
+
+## download dependencies
+
+```
+go mod download
 ```
 
 # Release Template
@@ -34,10 +48,3 @@ dep ensure -update
 ### Bug fix
 
 * [FIX] Truncate Latency precision in long running request [#17](https://github.com/sillyhatxu/convenient-utils/issues/17)
-
-###
-
-```
-git tag v1.0.2
-git push origin v1.0.2
-```
