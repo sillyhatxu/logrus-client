@@ -8,24 +8,26 @@ import (
 	"time"
 )
 
+var defaultJSONFormatter = &logrus.JSONFormatter{
+	TimestampFormat: time.RFC3339Nano,
+	FieldMap: *&logrus.FieldMap{
+		logrus.FieldKeyMsg:  "message",
+		logrus.FieldKeyTime: "@timestamp",
+	},
+}
+
+var defaultFields = logrus.Fields{
+	"project":  "test",
+	"module":   "test-module",
+	"@version": "1",
+	"type":     "project-log",
+}
+
 func TestDefaultLog(t *testing.T) {
-	jsonFormatter := &logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-		FieldMap: *&logrus.FieldMap{
-			logrus.FieldKeyMsg:  "message",
-			logrus.FieldKeyTime: "@timestamp",
-		},
-	}
-	conf := &Conf{
-		Level:        logrus.InfoLevel,
-		ReportCaller: true,
-		Fields: logrus.Fields{
-			"project": "test",
-			"module":  "test-module",
-		},
-		LogFormatter: jsonFormatter,
-	}
-	conf.Initial()
+	var config = NewLogrusConfig(
+		Fields(defaultFields),
+	)
+	config.Initial()
 	logrus.Debugf("test debug log[%s]", "This is debug log")
 	logrus.Infof("test info log[%s]", "This is info log")
 	logrus.Errorf("test error log[%s]", "This is error log")
@@ -33,38 +35,12 @@ func TestDefaultLog(t *testing.T) {
 }
 
 func TestFileLog(t *testing.T) {
-	jsonFormatter := &logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-		FieldMap: *&logrus.FieldMap{
-			logrus.FieldKeyMsg:  "message",
-			logrus.FieldKeyTime: "@timestamp",
-		},
-	}
-	conf := &Conf{
-		Level:        logrus.InfoLevel,
-		ReportCaller: true,
-		Fields: logrus.Fields{
-			"project": "test",
-			"module":  "test-module",
-		},
-		LogFormatter: jsonFormatter,
-		FileConf: &filehook.FileConf{
-			LogFormatter: &logrus.TextFormatter{
-				DisableColors:    true,
-				FullTimestamp:    true,
-				TimestampFormat:  string("2006-01-02 15:04:05"),
-				QuoteEmptyFields: true,
-				FieldMap: *&logrus.FieldMap{
-					logrus.FieldKeyMsg:  "message",
-					logrus.FieldKeyTime: "timestamp",
-				},
-			},
-			FilePath:         "/Users/cookie/go/gopath/src/github.com/sillyhatxu/logrus-client/logs/",
-			WithMaxAge:       time.Duration(876000) * time.Hour,
-			WithRotationTime: time.Duration(24) * time.Hour,
-		},
-	}
-	conf.Initial()
+	var fileConfig = filehook.NewFileConfig("/Users/shikuanxu/go/src/github.com/sillyhatxu/logrus-client/logs/")
+	var config = NewLogrusConfig(
+		Fields(defaultFields),
+		FileConfig(fileConfig),
+	)
+	config.Initial()
 	logrus.Debugf("test debug log[%s]", "This is debug log")
 	logrus.Infof("test info log[%s]", "This is info log")
 	logrus.Errorf("test error log[%s]", "This is error log")
@@ -72,71 +48,25 @@ func TestFileLog(t *testing.T) {
 }
 
 func TestLogstashLog(t *testing.T) {
-	jsonFormatter := &logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-		FieldMap: *&logrus.FieldMap{
-			logrus.FieldKeyMsg:  "message",
-			logrus.FieldKeyTime: "@timestamp",
-		},
-	}
-	conf := &Conf{
-		Level:        logrus.InfoLevel,
-		ReportCaller: true,
-		Fields: logrus.Fields{
-			"project": "test",
-			"module":  "test-module",
-		},
-		LogFormatter: jsonFormatter,
-		LogstashConf: &logstashhook.LogstashConf{
-			LogFormatter: jsonFormatter,
-			Address:      "localhost:5000",
-			ExtraFields:  logrus.Fields{"@version": "1", "type": "project-log"},
-		},
-	}
-	conf.Initial()
-	logrus.Debugf("test debug log[%s]", "This is debug log")
+	var logstashConfig = logstashhook.NewLogstashConfig("localhost:5000", logstashhook.Fields(defaultFields))
+	var config = NewLogrusConfig(
+		Fields(defaultFields),
+		LogstashConfig(logstashConfig),
+	)
+	config.Initial()
+	//logrus.Debugf("test debug log[%s]", "This is debug log")
 	logrus.Infof("test info log[%s]", "This is info log")
-	logrus.Errorf("test error log[%s]", "This is error log")
-	logrus.Warningf("test warn log[%s]", "This is warn log")
+	//logrus.Errorf("test error log[%s]", "This is error log")
+	//logrus.Warningf("test warn log[%s]", "This is warn log")
 }
 
 func TestInputLogstash(t *testing.T) {
-	jsonFormatter := &logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339Nano,
-		FieldMap: *&logrus.FieldMap{
-			logrus.FieldKeyMsg:  "message",
-			logrus.FieldKeyTime: "@timestamp",
-		},
-	}
-	conf := &Conf{
-		Level:        logrus.InfoLevel,
-		ReportCaller: true,
-		Fields: logrus.Fields{
-			"project": "test",
-			"module":  "test-module",
-		},
-		LogFormatter: jsonFormatter,
-		FileConf: &filehook.FileConf{
-			LogFormatter: &logrus.TextFormatter{
-				DisableColors:    true,
-				FullTimestamp:    true,
-				TimestampFormat:  string("2006-01-02 15:04:05"),
-				QuoteEmptyFields: true,
-				FieldMap: *&logrus.FieldMap{
-					logrus.FieldKeyMsg:  "message",
-					logrus.FieldKeyTime: "timestamp",
-				},
-			},
-			FilePath:         "/Users/cookie/go/gopath/src/github.com/sillyhatxu/logrus-client/logs",
-			WithMaxAge:       time.Duration(876000) * time.Hour,
-			WithRotationTime: time.Duration(24) * time.Hour,
-		},
-		LogstashConf: &logstashhook.LogstashConf{
-			LogFormatter: jsonFormatter,
-			Address:      "localhost:51401",
-		},
-	}
-	conf.Initial()
+	var logstashConfig = logstashhook.NewLogstashConfig("localhost:5000", logstashhook.Fields(defaultFields))
+	var config = NewLogrusConfig(
+		Fields(defaultFields),
+		LogstashConfig(logstashConfig),
+	)
+	config.Initial()
 	var i int64
 	for {
 		logrus.Infof("test info[%d] %v", i, time.Now().Format("2006-01-02 15:04:05"))

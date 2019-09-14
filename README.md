@@ -4,7 +4,7 @@
 ## Initialize your project
 
 ```
-go mod init logrus-client
+go mod init github.com/sillyhatxu/logrus-client
 ```
 
 ## Updating dependencies

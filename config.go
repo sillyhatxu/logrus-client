@@ -2,94 +2,81 @@ package logrusconf
 
 import (
 	"fmt"
+	"github.com/sillyhatxu/logrus-client/constants"
 	"github.com/sillyhatxu/logrus-client/fieldhook"
-	"github.com/sillyhatxu/logrus-client/filehook"
-	"github.com/sillyhatxu/logrus-client/logstashhook"
 	"github.com/sirupsen/logrus"
 	"os"
 )
 
-type Conf struct {
-	Level        logrus.Level
-	ReportCaller bool
-	Fields       logrus.Fields
-	LogFormatter logrus.Formatter
-	FileConf     *filehook.FileConf
-	LogstashConf *logstashhook.LogstashConf
+func NewLogrusConfig(opts ...Option) *Config {
+	//default
+	config := &Config{
+		reportCaller:   true,
+		level:          logrus.InfoLevel,
+		fields:         nil,
+		logFormatter:   constants.DefaultTextFormatter,
+		fileConfig:     nil,
+		logstashConfig: nil,
+	}
+
+	for _, opt := range opts {
+		opt(config)
+	}
+	return config
 }
 
-func (conf Conf) validate() error {
-	if conf.FileConf != nil {
-		//if conf.FileConf.LogFormatter == nil {
-		//	return fmt.Errorf("you must configure LogFormatter in [Conf.LogstashConf]; %#v", conf)
-		//}
-		if conf.FileConf.FilePath == "" {
-			return fmt.Errorf("you must configure FilePath in [Conf.LogstashConf]; %#v", conf)
-		}
-		if !exists(conf.FileConf.FilePath) {
-			err := createFolder(conf.FileConf.FilePath)
-			if err != nil {
-				return fmt.Errorf("create folder error; Error : %v", err)
-			}
-		}
-	}
-	if conf.LogstashConf != nil {
-		//if conf.LogstashConf.LogFormatter == "" {
-		//	return fmt.Errorf("you must configure LogFormatter in [Conf.LogstashConf]; %#v", conf)
-		//}
-		if conf.LogstashConf.Address == "" {
-			return fmt.Errorf("you must configure address in [Conf.LogstashConf]; %#v", conf)
-		}
-	}
+func (c Config) validate() error {
 	return nil
 }
 
-func (conf Conf) Initial() {
-	fmt.Println("InitialLogConfig :", fmt.Sprintf("%#v", conf))
-	err := conf.validate()
+func (c Config) Initial() {
+	fmt.Println("InitialLogConfig :", fmt.Sprintf("%#v", c))
+	err := c.validate()
 	if err != nil {
 		panic(err)
 	}
 	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(conf.Level)
-	logrus.SetReportCaller(conf.ReportCaller)
-	logrus.SetFormatter(conf.LogFormatter)
-	if len(conf.Fields) > 0 {
-		logrus.AddHook(&fieldhook.DefaultFieldHook{Fields: conf.Fields})
+	logrus.SetLevel(c.level)
+	logrus.SetReportCaller(c.reportCaller)
+	logrus.SetFormatter(c.logFormatter)
+	if c.fields != nil && len(c.fields) > 0 {
+		logrus.AddHook(&fieldhook.DefaultFieldHook{Fields: c.fields})
 	}
-	if conf.FileConf != nil {
-		infoHook, err := conf.FileConf.CreateFileHook("info", []logrus.Level{logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel})
-		if err != nil {
-			panic(fmt.Sprintf("create info hook error; Error : %v", err))
-		}
-		logrus.AddHook(infoHook)
-		errorHook, err := conf.FileConf.CreateFileHook("error", []logrus.Level{logrus.WarnLevel, logrus.ErrorLevel})
-		if err != nil {
-			panic(fmt.Sprintf("create error hook error; Error : %v", err))
-		}
-		logrus.AddHook(errorHook)
+	err = c.initialFileConfig()
+	if err != nil {
+		panic(err)
 	}
-	if conf.LogstashConf != nil {
-		hook := conf.LogstashConf.New(conf.Fields)
-		logrus.AddHook(hook)
+	err = c.initialLogstashConf()
+	if err != nil {
+		panic(err)
 	}
 }
 
-func createFolder(path string) error {
-	err := os.Mkdir(path, os.ModePerm)
-	if err != nil {
-		return err
+func (c Config) initialFileConfig() error {
+	if c.fileConfig == nil {
+		return nil
 	}
+	infoHook, err := c.fileConfig.CreateFileHook("info", []logrus.Level{logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel})
+	if err != nil {
+		return fmt.Errorf("create info hook error; Error : %v", err)
+	}
+	logrus.AddHook(infoHook)
+	errorHook, err := c.fileConfig.CreateFileHook("error", []logrus.Level{logrus.WarnLevel, logrus.ErrorLevel})
+	if err != nil {
+		return fmt.Errorf("create file hook error; Error : %v", err)
+	}
+	logrus.AddHook(errorHook)
 	return nil
 }
 
-func exists(path string) bool {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
+func (c Config) initialLogstashConf() error {
+	if c.logstashConfig == nil {
+		return nil
 	}
-	return true
+	hook, err := c.logstashConfig.CreateLogstashHook()
+	if err != nil {
+		return fmt.Errorf("create logstash hook error; Error : %v", err)
+	}
+	logrus.AddHook(hook)
+	return nil
 }

@@ -2,75 +2,147 @@ package logstashhook
 
 import (
 	"fmt"
+	"github.com/sillyhatxu/logrus-client/constants"
 	"github.com/sillyhatxu/logrus-client/tcpclient"
 	"github.com/sirupsen/logrus"
 	"io"
+	"path"
+	"runtime"
+	"strings"
 	"sync"
 )
 
-type LogstashConf struct {
-	LogFormatter logrus.Formatter
-	ExtraFields  logrus.Fields
-	Address      string
+type LogstashConfig struct {
+	logFormatter logrus.Formatter
+	fields       logrus.Fields
+	address      string
+	sourceField  string
+	skip         int
+}
+
+type Option func(*LogstashConfig)
+
+func NewLogstashConfig(address string, opts ...Option) *LogstashConfig {
+	//default
+	config := &LogstashConfig{
+		logFormatter: constants.DefaultJSONFormatter,
+		fields:       nil,
+		address:      address,
+		sourceField:  "source",
+		skip:         10,
+	}
+	for _, opt := range opts {
+		opt(config)
+	}
+	return config
+}
+
+func LogFormatter(logFormatter logrus.Formatter) Option {
+	return func(c *LogstashConfig) {
+		c.logFormatter = logFormatter
+	}
+}
+
+func Fields(fields logrus.Fields) Option {
+	return func(c *LogstashConfig) {
+		c.fields = fields
+	}
+}
+
+func SourceField(sourceField string) Option {
+	return func(c *LogstashConfig) {
+		c.sourceField = sourceField
+	}
+}
+
+func Skip(skip int) Option {
+	return func(c *LogstashConfig) {
+		c.skip = skip
+	}
+}
+
+func (lc *LogstashConfig) validate() error {
+	if lc.address == "" {
+		return fmt.Errorf("you must configure address in [Conf.LogstashConf]; %#v", lc)
+	}
+	return nil
+}
+
+func (lc *LogstashConfig) CreateLogstashHook() (logrus.Hook, error) {
+	err := lc.validate()
+	if err != nil {
+		return nil, err
+	}
+	conn, err := tcpclient.Dial("tcp", lc.address)
+	if err != nil {
+		return nil, fmt.Errorf("net.Dial(tcp, %s); Error : %v", lc.address, err)
+	}
+	return Hook{
+		sourceField: lc.sourceField,
+		skip:        lc.skip,
+		writer:      conn,
+		formatter: LogstashFormatter{
+			Formatter: lc.logFormatter,
+			Fields:    lc.fields,
+		},
+	}, nil
+	//for k, v := range lc.ExtraFields {
+	//	if _, ok := fields[k]; !ok {
+	//		fields[k] = v
+	//	}
+	//}
+	//conn, err := tcpclient.Dial("tcp", lc.Address)
+	//if err != nil {
+	//	panic(fmt.Sprintf("net.Dial(tcp, %s); Error : %v", lc.Address, err))
+	//}
+	//return Hook{
+	//	writer: conn,
+	//	formatter: LogstashFormatter{
+	//		Formatter: lc.LogFormatter,
+	//		Fields:    fields,
+	//	},
+	//}
 }
 
 type Hook struct {
-	writer    io.Writer
-	formatter logrus.Formatter
-}
-
-func (lc LogstashConf) New(fields logrus.Fields) logrus.Hook {
-	for k, v := range lc.ExtraFields {
-		if _, ok := fields[k]; !ok {
-			fields[k] = v
-		}
-	}
-	conn, err := tcpclient.Dial("tcp", lc.Address)
-	if err != nil {
-		panic(fmt.Sprintf("net.Dial(tcp, %s); Error : %v", lc.Address, err))
-	}
-	return Hook{
-		writer: conn,
-		formatter: LogstashFormatter{
-			Formatter: lc.LogFormatter,
-			Fields:    fields,
-		},
-	}
+	sourceField string
+	skip        int
+	writer      io.Writer
+	formatter   logrus.Formatter
 }
 
 func (h Hook) Fire(e *logrus.Entry) error {
+	e.Data[h.sourceField] = findCaller(h.skip)
 	dataBytes, err := h.formatter.Format(e)
 	if err != nil {
 		return err
 	}
+	fmt.Println(string(dataBytes))
 	_, err = h.writer.Write(dataBytes)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func findCaller(skip int) string {
+	result := ""
+	for i := 1; i <= 10; i++ {
+		if pc, file, line, ok := runtime.Caller(i); ok {
+			funcName := runtime.FuncForPC(pc).Name()
+			result = fmt.Sprintf("%s:%s:%d", path.Base(file), path.Base(funcName), line)
+			if !strings.Contains(funcName, "logrus") && !strings.Contains(funcName, "logrus-client") {
+				break
+			}
+			//fmt.Println(fmt.Sprintf("line:%d; pc : %s; file : %s; funcName : %s; path.Base(funcName) : %s; path.Base(file) : %s", line, pc, file, funcName, path.Base(funcName), path.Base(file)))
+		}
+	}
+	return result
 }
 
 func (h Hook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
-
-//var (
-//	logstashFields   = logrus.Fields{"@version": "1", "type": "project-log"}
-//	logstashFieldMap = logrus.FieldMap{
-//		logrus.FieldKeyTime: "@timestamp",
-//		logrus.FieldKeyMsg:  "message",
-//	}
-//)
-
-//func DefaultFormatter(fields logrus.Fields) logrus.Formatter {
-//	for k, v := range logstashFields {
-//		if _, ok := fields[k]; !ok {
-//			fields[k] = v
-//		}
-//	}
-//
-//	return LogstashFormatter{
-//		Formatter: &logrus.JSONFormatter{FieldMap: logstashFieldMap},
-//		Fields:    fields,
-//	}
-//}
 
 type LogstashFormatter struct {
 	logrus.Formatter

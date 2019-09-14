@@ -4,24 +4,96 @@ import (
 	"fmt"
 	"github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
+	"github.com/sillyhatxu/logrus-client/constants"
 	"github.com/sirupsen/logrus"
+	"os"
 	"time"
 )
 
-type FileConf struct {
-	LogFormatter     logrus.Formatter
-	FilePath         string
-	WithMaxAge       time.Duration
-	WithRotationTime time.Duration
+type FileConfig struct {
+	logFormatter     logrus.Formatter
+	filePath         string
+	withMaxAge       time.Duration
+	withRotationTime time.Duration
 }
 
-func (fc FileConf) CreateFileHook(fileName string, writerLevels []logrus.Level) (*lfshook.LfsHook, error) {
+type Option func(*FileConfig)
+
+func NewFileConfig(filePath string, opts ...Option) *FileConfig {
+	//default
+	config := &FileConfig{
+		logFormatter:     constants.DefaultTextFormatter,
+		filePath:         filePath,
+		withMaxAge:       time.Duration(876000) * time.Hour,
+		withRotationTime: time.Duration(24) * time.Hour,
+	}
+	for _, opt := range opts {
+		opt(config)
+	}
+	return config
+}
+
+func LogFormatter(logFormatter logrus.Formatter) Option {
+	return func(c *FileConfig) {
+		c.logFormatter = logFormatter
+	}
+}
+
+func WithMaxAge(withMaxAge time.Duration) Option {
+	return func(c *FileConfig) {
+		c.withMaxAge = withMaxAge
+	}
+}
+
+func WithRotationTime(withRotationTime time.Duration) Option {
+	return func(c *FileConfig) {
+		c.withRotationTime = withRotationTime
+	}
+}
+
+func createFolder(path string) error {
+	err := os.Mkdir(path, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
+func (fc *FileConfig) validate() error {
+	if fc.filePath == "" {
+		return fmt.Errorf("you must configure filePath;FileConfig : %#v", fc)
+	}
+	if !exists(fc.filePath) {
+		err := createFolder(fc.filePath)
+		if err != nil {
+			return fmt.Errorf("create folder error; Error : %v", err)
+		}
+	}
+	return nil
+}
+
+func (fc *FileConfig) CreateFileHook(fileName string, writerLevels []logrus.Level) (*lfshook.LfsHook, error) {
+	err := fc.validate()
+	if err != nil {
+		return nil, err
+	}
 	hookWrite, err := rotatelogs.New(
-		fc.FilePath+fileName+".log.%Y%m%d",
-		rotatelogs.WithLinkName(fc.FilePath+fileName+".log"),
+		fc.filePath+fileName+".log.%Y%m%d",
+		rotatelogs.WithLinkName(fc.filePath+fileName+".log"),
 		//rotatelogs.WithLinkName(lc.filePath+lc.module+"-info.log"),
-		rotatelogs.WithMaxAge(fc.WithMaxAge),
-		rotatelogs.WithRotationTime(fc.WithRotationTime),
+		rotatelogs.WithMaxAge(fc.withMaxAge),
+		rotatelogs.WithRotationTime(fc.withRotationTime),
 	)
 	if err != nil {
 		return nil, err
@@ -33,5 +105,5 @@ func (fc FileConf) CreateFileHook(fileName string, writerLevels []logrus.Level) 
 	for _, writerLevel := range writerLevels {
 		writerMap[writerLevel] = hookWrite
 	}
-	return lfshook.NewHook(writerMap, fc.LogFormatter), nil
+	return lfshook.NewHook(writerMap, fc.logFormatter), nil
 }
