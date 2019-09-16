@@ -86,22 +86,6 @@ func (lc *LogstashConfig) CreateLogstashHook() (logrus.Hook, error) {
 			Fields:    lc.fields,
 		},
 	}, nil
-	//for k, v := range lc.ExtraFields {
-	//	if _, ok := fields[k]; !ok {
-	//		fields[k] = v
-	//	}
-	//}
-	//conn, err := tcpclient.Dial("tcp", lc.Address)
-	//if err != nil {
-	//	panic(fmt.Sprintf("net.Dial(tcp, %s); Error : %v", lc.Address, err))
-	//}
-	//return Hook{
-	//	writer: conn,
-	//	formatter: LogstashFormatter{
-	//		Formatter: lc.LogFormatter,
-	//		Fields:    fields,
-	//	},
-	//}
 }
 
 type Hook struct {
@@ -112,6 +96,7 @@ type Hook struct {
 }
 
 func (h Hook) Fire(e *logrus.Entry) error {
+	e.Data["level"] = strings.ToUpper(fmt.Sprintf("%v", e.Data["level"]))
 	e.Data[h.sourceField] = findCaller(h.skip)
 	dataBytes, err := h.formatter.Format(e)
 	if err != nil {
