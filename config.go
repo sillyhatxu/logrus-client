@@ -5,6 +5,7 @@ import (
 	"github.com/sillyhatxu/logrus-client/constants"
 	"github.com/sillyhatxu/logrus-client/fieldhook"
 	"github.com/sirupsen/logrus"
+	"log"
 	"os"
 )
 
@@ -30,7 +31,7 @@ func (c Config) validate() error {
 }
 
 func (c Config) Initial() {
-	fmt.Println("InitialLogConfig :", fmt.Sprintf("%#v", c))
+	log.Println(fmt.Sprintf("InitialLogConfig : %#v", c))
 	err := c.validate()
 	if err != nil {
 		panic(err)
