@@ -57,6 +57,9 @@ func (c Config) initialFileConfig() error {
 	if c.fileConfig == nil {
 		return nil
 	}
+	if !c.fileConfig.IsOpen() {
+		return nil
+	}
 	infoHook, err := c.fileConfig.CreateFileHook("info", []logrus.Level{logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel})
 	if err != nil {
 		return fmt.Errorf("create info hook error; Error : %v", err)
@@ -72,6 +75,9 @@ func (c Config) initialFileConfig() error {
 
 func (c Config) initialLogstashConf() error {
 	if c.logstashConfig == nil {
+		return nil
+	}
+	if !c.logstashConfig.IsOpen() {
 		return nil
 	}
 	hook, err := c.logstashConfig.CreateLogstashHook()

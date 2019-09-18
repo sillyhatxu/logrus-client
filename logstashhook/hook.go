@@ -18,6 +18,7 @@ type LogstashConfig struct {
 	address      string
 	sourceField  string
 	skip         int
+	open         bool
 }
 
 type Option func(*LogstashConfig)
@@ -25,6 +26,7 @@ type Option func(*LogstashConfig)
 func NewLogstashConfig(address string, opts ...Option) *LogstashConfig {
 	//default
 	config := &LogstashConfig{
+		open:         true,
 		logFormatter: constants.DefaultJSONFormatter,
 		fields:       nil,
 		address:      address,
@@ -35,6 +37,16 @@ func NewLogstashConfig(address string, opts ...Option) *LogstashConfig {
 		opt(config)
 	}
 	return config
+}
+
+func (lc *LogstashConfig) IsOpen() bool {
+	return lc.open
+}
+
+func Open(open bool) Option {
+	return func(c *LogstashConfig) {
+		c.open = open
+	}
 }
 
 func LogFormatter(logFormatter logrus.Formatter) Option {

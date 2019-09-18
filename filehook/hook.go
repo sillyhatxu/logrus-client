@@ -15,13 +15,13 @@ type FileConfig struct {
 	filePath         string
 	withMaxAge       time.Duration
 	withRotationTime time.Duration
+	open             bool
 }
-
-type Option func(*FileConfig)
 
 func NewFileConfig(filePath string, opts ...Option) *FileConfig {
 	//default
 	config := &FileConfig{
+		open:             true,
 		logFormatter:     constants.DefaultTextFormatter,
 		filePath:         filePath,
 		withMaxAge:       time.Duration(876000) * time.Hour,
@@ -31,6 +31,18 @@ func NewFileConfig(filePath string, opts ...Option) *FileConfig {
 		opt(config)
 	}
 	return config
+}
+
+func (lc *FileConfig) IsOpen() bool {
+	return lc.open
+}
+
+type Option func(*FileConfig)
+
+func Open(open bool) Option {
+	return func(c *FileConfig) {
+		c.open = open
+	}
 }
 
 func LogFormatter(logFormatter logrus.Formatter) Option {
