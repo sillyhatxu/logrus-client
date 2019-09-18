@@ -108,7 +108,8 @@ type Hook struct {
 }
 
 func (h Hook) Fire(e *logrus.Entry) error {
-	//e.Data["level"] = strings.ToUpper(fmt.Sprintf("%v", e.Data["level"]))
+	//TODO for company
+	e.Data["level"] = strings.ToUpper(fmt.Sprintf("%v", e.Data["level"]))
 	e.Data[h.sourceField] = findCaller(h.skip)
 	dataBytes, err := h.formatter.Format(e)
 	if err != nil {
