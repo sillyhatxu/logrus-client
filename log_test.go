@@ -55,8 +55,8 @@ func TestLogstashLog(t *testing.T) {
 	)
 	config.Initial()
 	//logrus.Debugf("test debug log[%s]", "This is debug log")
-	logrus.Infof("test info log[%s]", "This is info log")
-	//logrus.Errorf("test error log[%s]", "This is error log")
+	logrus.Infof("test info log[%s]", "111111111111")
+	logrus.Errorf("test error log[%s]", "22222222222")
 	//logrus.Warningf("test warn log[%s]", "This is warn log")
 }
 

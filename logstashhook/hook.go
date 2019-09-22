@@ -108,14 +108,12 @@ type Hook struct {
 }
 
 func (h Hook) Fire(e *logrus.Entry) error {
-	//TODO for company
-	//e.Data["level"] = strings.ToUpper(fmt.Sprintf("%v", e.Data["level"]))
 	e.Data[h.sourceField] = findCaller(h.skip)
+	e.Data["level"] = strings.ToUpper(e.Level.String())
 	dataBytes, err := h.formatter.Format(e)
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(dataBytes))
 	_, err = h.writer.Write(dataBytes)
 	if err != nil {
 		return err
@@ -125,7 +123,7 @@ func (h Hook) Fire(e *logrus.Entry) error {
 
 func findCaller(skip int) string {
 	result := ""
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= skip; i++ {
 		if pc, file, line, ok := runtime.Caller(i); ok {
 			funcName := runtime.FuncForPC(pc).Name()
 			result = fmt.Sprintf("%s:%s:%d", path.Base(file), path.Base(funcName), line)
@@ -149,7 +147,9 @@ type LogstashFormatter struct {
 
 func (f LogstashFormatter) Format(e *logrus.Entry) ([]byte, error) {
 	ne := copyEntry(e, f.Fields)
+
 	dataBytes, err := f.Formatter.Format(ne)
+
 	releaseEntry(ne)
 	return dataBytes, err
 }
