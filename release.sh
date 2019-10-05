@@ -2,5 +2,5 @@
 git add .
 git commit -m 'release logrus-client'
 git push origin master
-git tag v2.0.0
-git push origin v2.0.0
+git tag v3.0.3
+git push origin v3.0.3
