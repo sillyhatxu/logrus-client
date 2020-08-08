@@ -54,23 +54,23 @@ func TestLogstashLog(t *testing.T) {
 		LogstashConfig(logstashConfig),
 	)
 	config.Initial()
-	//logrus.Debugf("test debug log[%s]", "This is debug log")
+	logrus.Debugf("test debug log[%s]", "This is debug log")
 	logrus.Infof("test info log[%s]", "111111111111")
 	logrus.Errorf("test error log[%s]", "22222222222")
 	//logrus.Warningf("test warn log[%s]", "This is warn log")
 }
 
-func TestInputLogstash(t *testing.T) {
-	var logstashConfig = logstashhook.NewLogstashConfig("localhost:5000", logstashhook.Fields(defaultFields))
-	var config = NewLogrusConfig(
-		Fields(defaultFields),
-		LogstashConfig(logstashConfig),
-	)
-	config.Initial()
-	var i int64
-	for {
-		logrus.Infof("test info[%d] %v", i, time.Now().Format("2006-01-02 15:04:05"))
-		i++
-		time.Sleep(5 * time.Second)
-	}
-}
+//func TestInputLogstash(t *testing.T) {
+//	var logstashConfig = logstashhook.NewLogstashConfig("localhost:5000", logstashhook.Fields(defaultFields))
+//	var config = NewLogrusConfig(
+//		Fields(defaultFields),
+//		LogstashConfig(logstashConfig),
+//	)
+//	config.Initial()
+//	var i int64
+//	for {
+//		logrus.Infof("test info[%d] %v", i, time.Now().Format("2006-01-02 15:04:05"))
+//		i++
+//		time.Sleep(5 * time.Second)
+//	}
+//}

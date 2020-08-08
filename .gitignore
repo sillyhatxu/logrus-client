@@ -16,6 +16,6 @@
 .idea/
 
 vendor/
-log/
+logs/
 
 config-local.conf
